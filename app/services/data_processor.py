@@ -71,7 +71,10 @@ def load_and_process_movies():
             "title",
             "overview",
             "genres",
-            "keywords"
+            "keywords",
+            "popularity",
+            "vote_average",
+            "vote_count"
         ]
     ]
 
@@ -106,6 +109,9 @@ def load_and_process_movies():
             "movie_id",
             "title",
             "genres",
+            "popularity",
+            "vote_average",
+            "vote_count",
             "tags"
         ]
     ]
