@@ -195,3 +195,83 @@ class RecommendationEngine:
             )
 
         return recommendations
+
+    def get_cold_start_recommendations(
+        self,
+        preferred_genres: list[str],
+        top_n: int = 10
+    ):
+
+        movies = self.movies.copy()
+
+        # Normalize user preferences
+        normalized_preferences = [
+            genre.lower().replace(" ", "")
+            for genre in preferred_genres
+        ]
+
+        # Calculate genre match score
+        def genre_match_score(movie_genres):
+
+            normalized_movie_genres = [
+                genre.lower()
+                for genre in movie_genres
+            ]
+
+            matches = set(
+                normalized_movie_genres
+            ).intersection(
+                normalized_preferences
+            )
+
+            return len(matches)
+
+        movies["genre_match"] = movies[
+            "genres"
+        ].apply(genre_match_score)
+
+        # Prefer movies matching user genres
+        genre_movies = movies[
+            movies["genre_match"] > 0
+        ]
+
+        # If no genre matches, use all movies
+        if genre_movies.empty:
+            genre_movies = movies
+
+        # Remove movies with very few votes
+        genre_movies = genre_movies[
+            genre_movies["vote_count"] >= 100
+        ]
+
+        # Sort based on:
+        # 1. Genre match
+        # 2. Average rating
+        # 3. Popularity
+        genre_movies = genre_movies.sort_values(
+            by=[
+                "genre_match",
+                "vote_average",
+                "popularity"
+            ],
+            ascending=False
+        )
+
+        recommendations = []
+
+        for _, movie in genre_movies.head(top_n).iterrows():
+
+            recommendations.append(
+                {
+                    "movie_id": int(movie["movie_id"]),
+                    "title": movie["title"],
+                    "genres": movie["genres"],
+                    "vote_average": round(
+                        float(movie["vote_average"]),
+                        2
+                    ),
+                    "score": int(movie["genre_match"])
+                }
+            )
+
+        return recommendations

@@ -72,21 +72,42 @@ def get_personalized_recommendations(
             )
 
     # Generate recommendations
-    recommendations = (
-        recommendation_engine.get_personalized_recommendations(
-            liked_movie_ids=liked_movie_ids,
-            preferred_genres=user.get(
-                "preferred_genres",
-                []
-            ),
-            interacted_movie_ids=interacted_movie_ids,
-            top_n=top_n
-        )
+    preferred_genres = user.get(
+        "preferred_genres",
+        []
     )
+
+    # If user has positive interactions,
+    # use personalized recommendations
+    if liked_movie_ids:
+
+        recommendations = (
+            recommendation_engine.get_personalized_recommendations(
+                liked_movie_ids=liked_movie_ids,
+                preferred_genres=preferred_genres,
+                interacted_movie_ids=interacted_movie_ids,
+                top_n=top_n
+            )
+        )
+
+        recommendation_type = "personalized"
+
+    # New user with no positive interactions
+    else:
+
+        recommendations = (
+            recommendation_engine.get_cold_start_recommendations(
+                preferred_genres=preferred_genres,
+                top_n=top_n
+            )
+        )
+
+        recommendation_type = "cold_start"
 
     return {
         "user_id": user_id,
         "user_name": user["name"],
+        "recommendation_type": recommendation_type,
         "based_on_movies": liked_movie_ids,
         "recommendations": recommendations
     }
