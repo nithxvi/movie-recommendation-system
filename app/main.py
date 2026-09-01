@@ -3,10 +3,10 @@ from fastapi import FastAPI
 from app.routes.users import router as users_router
 from app.routes.interactions import router as interactions_router
 
-from app.services.data_processor import load_movies
+from app.services.data_processor import load_and_process_movies
 
 
-movies = load_movies()
+movies = load_and_process_movies()
 
 
 app = FastAPI(
