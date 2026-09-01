@@ -88,3 +88,110 @@ class RecommendationEngine:
             )
 
         return recommendations
+
+    def get_personalized_recommendations(
+        self,
+        liked_movie_ids: list[int],
+        preferred_genres: list[str],
+        interacted_movie_ids: list[int],
+        top_n: int = 10
+    ):
+
+        # Store recommendation scores
+        recommendation_scores = {}
+
+        # Find recommendations based on liked/highly-rated movies
+        for movie_id in liked_movie_ids:
+
+            # Find movie index
+            movie_index = self.movies[
+                self.movies["movie_id"] == movie_id
+            ].index
+
+            # Skip if movie doesn't exist in dataset
+            if movie_index.empty:
+                continue
+
+            movie_index = movie_index[0]
+
+            # Get similarity scores
+            similarity_scores = enumerate(
+                self.similarity_matrix[movie_index]
+            )
+
+            for index, score in similarity_scores:
+
+                movie = self.movies.iloc[index]
+
+                candidate_movie_id = int(movie["movie_id"])
+
+                # Don't recommend movies the user already interacted with
+                if candidate_movie_id in interacted_movie_ids:
+                    continue
+
+                # Skip the source movie itself
+                if candidate_movie_id == movie_id:
+                    continue
+
+                # Add similarity score
+                if candidate_movie_id not in recommendation_scores:
+                    recommendation_scores[candidate_movie_id] = 0
+
+                recommendation_scores[candidate_movie_id] += float(score)
+
+        # Add genre preference bonus
+        for movie_id in recommendation_scores:
+
+            movie = self.movies[
+                self.movies["movie_id"] == movie_id
+            ].iloc[0]
+
+            movie_genres = movie["genres"]
+
+            # Normalize genres for comparison
+            normalized_movie_genres = [
+                genre.lower()
+                for genre in movie_genres
+            ]
+
+            normalized_preferences = [
+                genre.lower().replace(" ", "")
+                for genre in preferred_genres
+            ]
+
+            # Add bonus if genres match
+            matching_genres = set(
+                normalized_movie_genres
+            ).intersection(
+                normalized_preferences
+            )
+
+            if matching_genres:
+                recommendation_scores[movie_id] += 0.2
+
+        # Sort recommendations
+        sorted_recommendations = sorted(
+            recommendation_scores.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )
+
+        # Build final response
+        recommendations = []
+
+        for movie_id, score in sorted_recommendations[:top_n]:
+
+            movie = self.movies[
+                self.movies["movie_id"] == movie_id
+            ].iloc[0]
+
+            recommendations.append(
+                {
+                    "movie_id": movie_id,
+                    "title": movie["title"],
+                    "genres": movie["genres"],
+                    "score": round(float(score), 4)
+                }
+            )
+
+        return recommendations
